@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# Where your config file is 
+ftw_config="$HOME/.ftw_config"
+
+process_file(){
+	input_filepath=$1
+	input_filename=$(basename -- "$input_filepath")
+
+	input_mime=$(file --mime-type -N $input_filepath | tr -d " " | cut -d":" -f2)
+	input_extension=${input_filename##*.}
+}
+
+get_command(){
+# Extensions take priority over mime types as more specific.
+	command=$(jq -r ".$input_extension" $ftw_config)
+	
+	if [ "$command" = "null" ]
+	then
+		command=$(jq -r ".$input_mime" $ftw_config)
+	fi
+}
+
+execute_command(){
+	# final check
+	if [ "$command" = "null" ]
+	then
+		echo "No match was found for $input_extension or MIME type $input_mime"
+		exit 1
+	fi
+	$command
+}
+
+
+# Main begins here
+if [ ! -e "$ftw_config" ]
+	then
+	echo "No config file! Default location is $HOME/ftw_config"
+	exit 1
+fi
+
+# Parsing args
+# If only one argument given, assume it is the file to process
+if [ "$#" -eq 1 ]
+then
+	process_file $1	
+	get_command
+	execute_command
+	exit
+fi	
+
