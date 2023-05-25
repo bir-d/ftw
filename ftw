@@ -19,6 +19,9 @@ get_command(){
 	then
 		command=$(jq -r ".$input_mime" $ftw_config)
 	fi
+
+	# subsitute @a's
+	command=$(echo $command | sed "s|@a|$input_filepath|g")
 }
 
 execute_command(){
