@@ -4,6 +4,12 @@
 ftw_config="$HOME/.ftw_config"
 
 process_file(){
+	if [ ! -f $1 ]
+	then
+		echo "$1 is not a valid file. Exiting..."
+		exit 1
+	fi
+
 	input_filepath=$1
 	input_filename=$(basename -- "$input_filepath")
 
@@ -13,11 +19,18 @@ process_file(){
 
 get_command(){
 # Extensions take priority over mime types as more specific.
-	command=$(jq -r ".$input_extension" $ftw_config)
+	command=$(jq -r ".$input_extension" $ftw_config | grep -v null); ec=$?
 	
-	if [ "$command" = "null" ]
+	if [ $ec -eq 1 ]
 	then
-		command=$(jq -r ".$input_mime" $ftw_config)
+		command=$(jq -r ".$input_mime" $ftw_config | grep -v null); ec=$?   
+	fi
+	
+	# final check
+	if [ $ec -eq 1 ]
+	then
+		echo "No match was found for $input_extension or MIME type $input_mime"
+		exit 1
 	fi
 
 	# subsitute @a's
@@ -25,12 +38,6 @@ get_command(){
 }
 
 execute_command(){
-	# final check
-	if [ "$command" = "null" ]
-	then
-		echo "No match was found for $input_extension or MIME type $input_mime"
-		exit 1
-	fi
 	$command
 }
 
