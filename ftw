@@ -14,19 +14,31 @@ process_file(){
 	input_filename=$(basename -- "$input_filepath")
 
 	input_mime=$(file --mime-type -N $input_filepath | tr -d " " | cut -d":" -f2)
+	input_mimetype=$(echo $input_mime | cut -d"/" -f1)
+	input_mimesubtype=$(echo $input_mime | cut -d"/" -f2)
 	input_extension=${input_filename##*.}
 }
 
 get_command(){
 # Extensions take priority over mime types as more specific.
+# Could refactor this...
+
+	# file extensions
 	command=$(jq -r ".$input_extension" $ftw_config | grep -v null); ec=$?
 	
+	# mime subtypes
 	if [ $ec -eq 1 ]
 	then
-		command=$(jq -r ".$input_mime" $ftw_config | grep -v null); ec=$?   
+		command=$(jq -r ".$input_mimesubtype" $ftw_config | grep -v null); ec=$?   
 	fi
 	
-	# final check
+	# mime types
+	if [ $ec -eq 1 ]
+	then
+		command=$(jq -r ".$input_mimetype" $ftw_config | grep -v null); ec=$?   
+	fi
+	
+	# If no matches
 	if [ $ec -eq 1 ]
 	then
 		echo "No match was found for $input_extension or MIME type $input_mime"
